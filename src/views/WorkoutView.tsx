@@ -1,4 +1,4 @@
-import type React from 'react';
+import React from 'react';
 import ActionButton from '../components/generic/ActionButton';
 import RoundDisplay from '../components/generic/RoundDisplay';
 import TimeDisplay from '../components/generic/TimeDisplay';
@@ -13,7 +13,7 @@ const WorkoutView: React.FC = () => {
             return <p style={{ fontSize: '1.2rem', color: '#888', textAlign: 'center' }}>No active timer. Start a workout to begin.</p>;
         }
 
-        const { type, config, state, description } = currentTimer;
+        const { type, config, state } = currentTimer;
 
         return (
             <div
@@ -28,16 +28,13 @@ const WorkoutView: React.FC = () => {
             >
                 <h3 style={{ fontSize: '1.5rem', textAlign: 'center' }}>Current Timer</h3>
                 <p style={{ fontSize: '1.2rem', marginBottom: '10px' }}>
-                    <strong>Description:</strong> {description || 'No description provided'}
-                </p>
-                <p style={{ fontSize: '1.2rem', marginBottom: '10px' }}>
                     <strong>Type:</strong> {type}
                 </p>
                 <p style={{ fontSize: '1.2rem', marginBottom: '10px' }}>
                     <strong>State:</strong> {state}
                 </p>
                 <p style={{ fontSize: '1.2rem' }}>
-                    <strong>Config:</strong> {JSON.stringify(config, null, 2)}
+                    <strong>Config:</strong> {JSON.stringify(config)}
                 </p>
             </div>
         );
@@ -58,26 +55,23 @@ const WorkoutView: React.FC = () => {
                 />
             )}
 
-            {currentTimer?.config?.totalSeconds !== undefined && (
-                <TimeDisplay timeInMs={currentTimer.config.totalSeconds * 1000} />
+            {currentTimer?.config?.initialTime && (
+                <TimeDisplay timeInMs={currentTimer.config.initialTime * 1000} />
             )}
 
             {/* Action Buttons */}
-            <div style={{ marginTop: '30px', display: 'flex', justifyContent: 'center', gap: '15px' }}>
-                <ActionButton
-                    label={isWorkoutRunning ? 'Pause Workout' : 'Start Workout'}
-                    onClick={toggleWorkout}
-                    disabled={!currentTimer}
-                />
-                <ActionButton
-                    label="Reset Workout"
-                    onClick={resetWorkout}
-                    disabled={!currentTimer}
-                />
+            <div style={{ marginTop: '30px' }}>
+                <ActionButton label="Start Workout" onClick={startWorkout} disabled={isWorkoutRunning} />
+                <ActionButton label="Reset Workout" onClick={resetWorkout} disabled={!currentTimer} />
                 <ActionButton
                     label="Fast Forward"
                     onClick={fastForward}
                     disabled={!currentTimer || currentTimer.state === 'completed'}
+                />
+                <ActionButton
+                    label={isWorkoutRunning ? 'Pause Workout' : 'Resume Workout'}
+                    onClick={toggleWorkout}
+                    disabled={!currentTimer}
                 />
             </div>
 
