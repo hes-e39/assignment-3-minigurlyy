@@ -5,7 +5,7 @@ import TimeDisplay from '../components/generic/TimeDisplay';
 import { useTimerContext } from '../context/TimerContext';
 
 const WorkoutView: React.FC = () => {
-    const { currentTimer, startWorkout, resetWorkout, fastForward } = useTimerContext();
+    const { currentTimer, startWorkout, resetWorkout, fastForward, isWorkoutRunning, toggleWorkout } = useTimerContext();
 
     // Helper to render details of the current timer
     const renderTimerDetails = () => {
@@ -13,7 +13,7 @@ const WorkoutView: React.FC = () => {
             return <p style={{ fontSize: '1.2rem', color: '#888', textAlign: 'center' }}>No active timer. Start a workout to begin.</p>;
         }
 
-        const { type, config, state } = currentTimer;
+        const { type, config, state, description } = currentTimer;
 
         return (
             <div
@@ -28,13 +28,16 @@ const WorkoutView: React.FC = () => {
             >
                 <h3 style={{ fontSize: '1.5rem', textAlign: 'center' }}>Current Timer</h3>
                 <p style={{ fontSize: '1.2rem', marginBottom: '10px' }}>
+                    <strong>Description:</strong> {description || 'No description provided'}
+                </p>
+                <p style={{ fontSize: '1.2rem', marginBottom: '10px' }}>
                     <strong>Type:</strong> {type}
                 </p>
                 <p style={{ fontSize: '1.2rem', marginBottom: '10px' }}>
                     <strong>State:</strong> {state}
                 </p>
                 <p style={{ fontSize: '1.2rem' }}>
-                    <strong>Config:</strong> {JSON.stringify(config)}
+                    <strong>Config:</strong> {JSON.stringify(config, null, 2)}
                 </p>
             </div>
         );
@@ -48,21 +51,48 @@ const WorkoutView: React.FC = () => {
             {renderTimerDetails()}
 
             {/* Render Timer Countdown or Round Display */}
-            {currentTimer?.type === 'xy' && <RoundDisplay currentRound={currentTimer.config.currentRound || 1} totalRounds={currentTimer.config.totalRounds || 1} />}
+            {currentTimer?.type === 'xy' && (
+                <RoundDisplay
+                    currentRound={currentTimer.config.currentRound || 1}
+                    totalRounds={currentTimer.config.totalRounds || 1}
+                />
+            )}
 
-            {currentTimer?.config?.initialTime && <TimeDisplay timeInMs={currentTimer.config.initialTime * 1000} />}
+            {currentTimer?.config?.totalSeconds !== undefined && (
+                <TimeDisplay timeInMs={currentTimer.config.totalSeconds * 1000} />
+            )}
 
             {/* Action Buttons */}
-            <div style={{ marginTop: '30px' }}>
-                <ActionButton label="Start Workout" onClick={startWorkout} disabled={!currentTimer} />
-                <ActionButton label="Reset Workout" onClick={resetWorkout} disabled={!currentTimer} />
-                <ActionButton label="Fast Forward" onClick={fastForward} disabled={!currentTimer || currentTimer.state === 'completed'} />
+            <div style={{ marginTop: '30px', display: 'flex', justifyContent: 'center', gap: '15px' }}>
+                <ActionButton
+                    label={isWorkoutRunning ? 'Pause Workout' : 'Start Workout'}
+                    onClick={toggleWorkout}
+                    disabled={!currentTimer}
+                />
+                <ActionButton
+                    label="Reset Workout"
+                    onClick={resetWorkout}
+                    disabled={!currentTimer}
+                />
+                <ActionButton
+                    label="Fast Forward"
+                    onClick={fastForward}
+                    disabled={!currentTimer || currentTimer.state === 'completed'}
+                />
             </div>
 
             {/* Status Messages */}
-            {currentTimer?.state === 'completed' && <p style={{ marginTop: '20px', fontSize: '1.2rem', color: '#28a745' }}>Timer Completed! Moving to the next one...</p>}
+            {currentTimer?.state === 'completed' && (
+                <p style={{ marginTop: '20px', fontSize: '1.2rem', color: '#28a745' }}>
+                    Timer Completed! Moving to the next one...
+                </p>
+            )}
 
-            {!currentTimer && <p style={{ marginTop: '20px', fontSize: '1.2rem', color: '#555' }}>No timers available. Please add a timer to start the workout.</p>}
+            {!currentTimer && (
+                <p style={{ marginTop: '20px', fontSize: '1.2rem', color: '#555' }}>
+                    No timers available. Please add a timer to start the workout.
+                </p>
+            )}
         </div>
     );
 };

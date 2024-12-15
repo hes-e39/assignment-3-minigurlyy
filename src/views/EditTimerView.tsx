@@ -1,20 +1,40 @@
-import React, { useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useTimerContext } from '../context/TimerContext';
 
-const AddTimerView: React.FC = () => {
-    const { addTimer } = useTimerContext();
+const EditTimerView: React.FC = () => {
+    const { timers, editTimer } = useTimerContext();
+    const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
-    const [searchParams, setSearchParams] = useSearchParams();
 
-    // State to manage timer type, configuration, and description
     const [type, setType] = useState<'countdown' | 'xy' | 'tabata' | 'stopwatch'>('countdown');
     const [config, setConfig] = useState<any>({});
-    const [description, setDescription] = useState<string>(''); // New description field
+    const [description, setDescription] = useState<string>('');
     const [error, setError] = useState<string | null>(null);
 
-    // Validate and handle adding a new timer
-    const handleAddTimer = () => {
+    // Load timer data for the given ID
+    useEffect(() => {
+        if (id) {
+            const timer = timers.find((t) => t.id === id);
+            if (timer) {
+                setType(timer.type);
+                setConfig(timer.config);
+                setDescription(timer.description || '');
+            } else {
+                setError('Timer not found.');
+            }
+        } else {
+            setError('Invalid timer ID.');
+        }
+    }, [id, timers]);
+
+    // Handle updating the timer
+    const handleUpdateTimer = () => {
+        if (!id) {
+            setError('Invalid timer ID.');
+            return;
+        }
+
         if (
             (type === 'countdown' && !config.totalSeconds) ||
             (type === 'xy' && (!config.timePerRound || !config.totalRounds)) ||
@@ -25,20 +45,11 @@ const AddTimerView: React.FC = () => {
             return;
         }
 
-        const newTimer = {
-            id: `${type}-${Date.now()}`,
+        editTimer(id, {
             type,
             description,
             config,
-            state: 'not running' as const,
-        };
-
-        addTimer(newTimer);
-
-        // Persist configuration to the URL
-        const currentTimers = searchParams.get('timers') || '[]';
-        const updatedTimers = [...JSON.parse(currentTimers), newTimer];
-        setSearchParams({ timers: JSON.stringify(updatedTimers) });
+        });
 
         navigate('/');
     };
@@ -134,9 +145,13 @@ const AddTimerView: React.FC = () => {
         }
     };
 
+    if (error) {
+        return <div className="error-message">{error}</div>;
+    }
+
     return (
-        <div className="add-timer-container">
-            <h2 className="add-timer-heading">Add Timer</h2>
+        <div className="edit-timer-container">
+            <h2 className="edit-timer-heading">Edit Timer</h2>
             {error && <div className="error-message">{error}</div>}
 
             {/* Timer type options */}
@@ -145,11 +160,7 @@ const AddTimerView: React.FC = () => {
                     <button
                         key={option}
                         className={`timer-option-button ${type === option ? 'active' : ''}`}
-                        onClick={() => {
-                            setType(option);
-                            setConfig({});
-                            setError(null);
-                        }}
+                        onClick={() => setType(option)}
                     >
                         {option.charAt(0).toUpperCase() + option.slice(1)}
                     </button>
@@ -168,8 +179,8 @@ const AddTimerView: React.FC = () => {
 
             {/* Buttons */}
             <div className="button-container">
-                <button className="add-button" onClick={handleAddTimer}>
-                    Add Timer
+                <button className="update-button" onClick={handleUpdateTimer}>
+                    Update Timer
                 </button>
                 <button className="back-button" onClick={() => navigate('/')}>
                     Back
@@ -179,4 +190,4 @@ const AddTimerView: React.FC = () => {
     );
 };
 
-export default AddTimerView;
+export default EditTimerView;
