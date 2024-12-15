@@ -20,9 +20,17 @@ export interface Timer {
     state: 'not running' | 'running' | 'completed';
 }
 
+export interface Workout {
+    id: string;
+    date: string;
+    totalTime: number;
+    timers: string[];
+}
+
 // Timer Context Properties
 interface TimerContextProps {
     timers: Timer[];
+    workoutHistory: Workout[];
     addTimer: (timer: Timer) => void;
     editTimer: (id: string, updatedData: Partial<Timer>) => void;
     removeTimer: (id: string) => void;
@@ -32,8 +40,8 @@ interface TimerContextProps {
     startWorkout: () => void;
     isWorkoutRunning: boolean;
     toggleWorkout: () => void;
-    reorderTimers: (startIndex: number, endIndex: number) => void;
     completeWorkout: () => void;
+    reorderTimers: (startIndex: number, endIndex: number) => void;
 }
 
 // Create TimerContext
@@ -45,6 +53,11 @@ export const TimerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         return storedTimers ? JSON.parse(storedTimers) : [];
     });
 
+    const [workoutHistory, setWorkoutHistory] = useState<Workout[]>(() => {
+        const storedHistory = localStorage.getItem('workoutHistory');
+        return storedHistory ? JSON.parse(storedHistory) : [];
+    });
+
     const [currentIndex, setCurrentIndex] = useState<number>(() => {
         const storedIndex = localStorage.getItem('currentIndex');
         return storedIndex ? parseInt(storedIndex, 10) : -1;
@@ -54,26 +67,15 @@ export const TimerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     useEffect(() => {
         localStorage.setItem('timers', JSON.stringify(timers));
+        localStorage.setItem('workoutHistory', JSON.stringify(workoutHistory));
         localStorage.setItem('currentIndex', currentIndex.toString());
-    }, [timers, currentIndex]);
-
-    // Request notification permission when the app loads
-    useEffect(() => {
-        if (Notification.permission === 'default') {
-            Notification.requestPermission();
-        }
-    }, []);
-
-    // Function to send notifications
-    const sendNotification = (title: string, body: string) => {
-        if (Notification.permission === 'granted') {
-            new Notification(title, { body });
-        }
-    };
+    }, [timers, workoutHistory, currentIndex]);
 
     const addTimer = (timer: Timer) => setTimers((prev) => [...prev, timer]);
 
-    const removeTimer = (id: string) => setTimers((prev) => prev.filter((timer) => timer.id !== id));
+    const removeTimer = (id: string) => {
+        setTimers((prev) => prev.filter((timer) => timer.id !== id));
+    };
 
     const editTimer = (id: string, updatedData: Partial<Timer>) => {
         setTimers((prev) =>
@@ -99,20 +101,21 @@ export const TimerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     const fastForward = () => {
         if (currentIndex >= 0 && currentIndex < timers.length) {
-            sendNotification('Timer Fast Forwarded', 'The current timer was fast-forwarded.');
             setTimers((prev) =>
                 prev.map((timer, index) =>
-                    index === currentIndex
-                        ? { ...timer, state: 'completed' }
-                        : timer,
+                    index === currentIndex ? { ...timer, state: 'completed' } : timer,
                 ),
             );
-            const nextIndex = currentIndex + 1;
-            if (nextIndex < timers.length) {
-                setCurrentIndex(nextIndex);
-            } else {
-                completeWorkout();
-            }
+            moveToNextTimer();
+        }
+    };
+
+    const moveToNextTimer = () => {
+        const nextIndex = currentIndex + 1;
+        if (nextIndex < timers.length) {
+            setCurrentIndex(nextIndex);
+        } else {
+            completeWorkout();
         }
     };
 
@@ -120,7 +123,6 @@ export const TimerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         if (timers.length > 0) {
             setCurrentIndex(0);
             setIsWorkoutRunning(true);
-            sendNotification('Workout Started', 'The workout has started!');
             setTimers((prev) =>
                 prev.map((timer, index) => ({
                     ...timer,
@@ -130,12 +132,44 @@ export const TimerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         }
     };
 
+    const toggleWorkout = () => setIsWorkoutRunning((prev) => !prev);
+
     const completeWorkout = () => {
-        sendNotification('Workout Complete', 'Congratulations! You have completed your workout.');
+        const totalTime = timers.reduce((total, timer) => {
+            switch (timer.type) {
+                case 'countdown':
+                case 'stopwatch':
+                    return total + (timer.config.totalSeconds || 0);
+                case 'xy':
+                    return (
+                        total +
+                        (timer.config.timePerRound || 0) * (timer.config.totalRounds || 1)
+                    );
+                case 'tabata':
+                    const workTime =
+                        (timer.config.workSeconds || 0) * (timer.config.totalRounds || 0);
+                    const restTime =
+                        (timer.config.restSeconds || 0) * (timer.config.totalRounds || 0);
+                    return total + workTime + restTime;
+                default:
+                    return total;
+            }
+        }, 0);
+
+        const completedWorkout: Workout = {
+            id: `workout-${Date.now()}`,
+            date: new Date().toLocaleString(),
+            totalTime,
+            timers: timers.map((timer) => timer.description || timer.type),
+        };
+
+        setWorkoutHistory((prev) => [...prev, completedWorkout]);
+        localStorage.setItem('workoutHistory', JSON.stringify([...workoutHistory, completedWorkout]));
         resetWorkout();
     };
 
-    const toggleWorkout = () => setIsWorkoutRunning((prev) => !prev);
+    const currentTimer =
+        currentIndex >= 0 && currentIndex < timers.length ? timers[currentIndex] : null;
 
     const reorderTimers = (startIndex: number, endIndex: number) => {
         setTimers((prev) => {
@@ -146,13 +180,11 @@ export const TimerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         });
     };
 
-    const currentTimer =
-        currentIndex >= 0 && currentIndex < timers.length ? timers[currentIndex] : null;
-
     return (
         <TimerContext.Provider
             value={{
                 timers,
+                workoutHistory,
                 addTimer,
                 editTimer,
                 removeTimer,
@@ -162,8 +194,8 @@ export const TimerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 startWorkout,
                 isWorkoutRunning,
                 toggleWorkout,
-                reorderTimers,
                 completeWorkout,
+                reorderTimers,
             }}
         >
             {children}
