@@ -478,3 +478,7 @@ button.back-button:hover {
   justify-content: space-between; /* Ensure equal space between buttons */
   width: 100%;
 }
+
+button:focus {
+  outline: none;
+}

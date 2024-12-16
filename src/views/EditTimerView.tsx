@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useTimerContext } from '../context/TimerContext';
 
 const EditTimerView: React.FC = () => {
@@ -10,51 +10,23 @@ const EditTimerView: React.FC = () => {
     const [type, setType] = useState<'countdown' | 'xy' | 'tabata' | 'stopwatch'>('countdown');
     const [config, setConfig] = useState<any>({});
     const [description, setDescription] = useState<string>('');
-    const [error, setError] = useState<string | null>(null);
 
-    // Load timer data for the given ID
     useEffect(() => {
-        if (id) {
-            const timer = timers.find((t) => t.id === id);
-            if (timer) {
-                setType(timer.type);
-                setConfig(timer.config);
-                setDescription(timer.description || '');
-            } else {
-                setError('Timer not found.');
-            }
-        } else {
-            setError('Invalid timer ID.');
+        const timer = timers.find((t) => t.id === id);
+        if (timer) {
+            setType(timer.type);
+            setConfig(timer.config);
+            setDescription(timer.description || '');
         }
     }, [id, timers]);
 
-    // Handle updating the timer
-    const handleUpdateTimer = () => {
-        if (!id) {
-            setError('Invalid timer ID.');
-            return;
+    const handleUpdate = () => {
+        if (id) {
+            editTimer(id, { type, config, description });
+            navigate('/');
         }
-
-        if (
-            (type === 'countdown' && !config.totalSeconds) ||
-            (type === 'xy' && (!config.timePerRound || !config.totalRounds)) ||
-            (type === 'tabata' && (!config.workSeconds || !config.restSeconds || !config.totalRounds)) ||
-            (type === 'stopwatch' && !config.totalSeconds)
-        ) {
-            setError('Please fill in all required fields for the selected timer type.');
-            return;
-        }
-
-        editTimer(id, {
-            type,
-            description,
-            config,
-        });
-
-        navigate('/');
     };
 
-    // Dynamically render input fields based on the timer type
     const renderConfigFields = () => {
         switch (type) {
             case 'countdown':
@@ -63,7 +35,8 @@ const EditTimerView: React.FC = () => {
                         type="number"
                         placeholder="Total Time (seconds)"
                         value={config.totalSeconds || ''}
-                        onChange={(e) => setConfig({ totalSeconds: +e.target.value })}
+                        onChange={(e) => setConfig({ ...config, totalSeconds: +e.target.value })}
+                        style={inputStyle}
                     />
                 );
             case 'xy':
@@ -74,22 +47,18 @@ const EditTimerView: React.FC = () => {
                             placeholder="Time Per Round (seconds)"
                             value={config.timePerRound || ''}
                             onChange={(e) =>
-                                setConfig((prev: any) => ({
-                                    ...prev,
-                                    timePerRound: +e.target.value,
-                                }))
+                                setConfig({ ...config, timePerRound: +e.target.value })
                             }
+                            style={inputStyle}
                         />
                         <input
                             type="number"
                             placeholder="Total Rounds"
                             value={config.totalRounds || ''}
                             onChange={(e) =>
-                                setConfig((prev: any) => ({
-                                    ...prev,
-                                    totalRounds: +e.target.value,
-                                }))
+                                setConfig({ ...config, totalRounds: +e.target.value })
                             }
+                            style={inputStyle}
                         />
                     </>
                 );
@@ -101,33 +70,27 @@ const EditTimerView: React.FC = () => {
                             placeholder="Work Duration (seconds)"
                             value={config.workSeconds || ''}
                             onChange={(e) =>
-                                setConfig((prev: any) => ({
-                                    ...prev,
-                                    workSeconds: +e.target.value,
-                                }))
+                                setConfig({ ...config, workSeconds: +e.target.value })
                             }
+                            style={inputStyle}
                         />
                         <input
                             type="number"
                             placeholder="Rest Duration (seconds)"
                             value={config.restSeconds || ''}
                             onChange={(e) =>
-                                setConfig((prev: any) => ({
-                                    ...prev,
-                                    restSeconds: +e.target.value,
-                                }))
+                                setConfig({ ...config, restSeconds: +e.target.value })
                             }
+                            style={inputStyle}
                         />
                         <input
                             type="number"
                             placeholder="Total Rounds"
                             value={config.totalRounds || ''}
                             onChange={(e) =>
-                                setConfig((prev: any) => ({
-                                    ...prev,
-                                    totalRounds: +e.target.value,
-                                }))
+                                setConfig({ ...config, totalRounds: +e.target.value })
                             }
+                            style={inputStyle}
                         />
                     </>
                 );
@@ -137,7 +100,8 @@ const EditTimerView: React.FC = () => {
                         type="number"
                         placeholder="Total Time (seconds)"
                         value={config.totalSeconds || ''}
-                        onChange={(e) => setConfig({ totalSeconds: +e.target.value })}
+                        onChange={(e) => setConfig({ ...config, totalSeconds: +e.target.value })}
+                        style={inputStyle}
                     />
                 );
             default:
@@ -145,44 +109,44 @@ const EditTimerView: React.FC = () => {
         }
     };
 
-    if (error) {
-        return <div className="error-message">{error}</div>;
-    }
-
     return (
-        <div className="edit-timer-container">
-            <h2 className="edit-timer-heading">Edit Timer</h2>
-            {error && <div className="error-message">{error}</div>}
+        <div style={containerStyle}>
+            <h2 style={headingStyle}>Edit Timer</h2>
 
-            {/* Timer type options */}
-            <div className="timer-type-options">
-                {(['countdown', 'xy', 'tabata', 'stopwatch'] as const).map((option) => (
+            {/* Type Selection Buttons */}
+            <div style={buttonContainerStyle}>
+                {['countdown', 'xy', 'tabata', 'stopwatch'].map((option) => (
                     <button
                         key={option}
-                        className={`timer-option-button ${type === option ? 'active' : ''}`}
-                        onClick={() => setType(option)}
+                        onClick={() => setType(option as any)}
+                        style={{
+                            ...buttonStyle,
+                            backgroundColor: type === option ? '#556B2F' : '#E0E0E0',
+                            color: type === option ? '#FFF' : '#333',
+                        }}
                     >
                         {option.charAt(0).toUpperCase() + option.slice(1)}
                     </button>
                 ))}
             </div>
 
-            {/* Input fields */}
-            <div className="config-fields">{renderConfigFields()}</div>
+            {/* Input Fields */}
+            <div style={formStyle}>{renderConfigFields()}</div>
 
-            {/* Description field */}
+            {/* Description */}
             <textarea
                 placeholder="Add a description for this timer (optional)"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
+                style={textareaStyle}
             />
 
-            {/* Buttons */}
-            <div className="button-container">
-                <button className="update-button" onClick={handleUpdateTimer}>
+            {/* Action Buttons */}
+            <div style={{ marginTop: '20px' }}>
+                <button onClick={handleUpdate} style={updateButtonStyle}>
                     Update Timer
                 </button>
-                <button className="back-button" onClick={() => navigate('/')}>
+                <button onClick={() => navigate('/')} style={backButtonStyle}>
                     Back
                 </button>
             </div>
@@ -191,3 +155,74 @@ const EditTimerView: React.FC = () => {
 };
 
 export default EditTimerView;
+
+/* Styling */
+const containerStyle = {
+    padding: '20px',
+    textAlign: 'center' as const,
+};
+
+const headingStyle = {
+    fontSize: '2rem',
+    marginBottom: '20px',
+};
+
+const buttonContainerStyle = {
+    display: 'flex',
+    justifyContent: 'center',
+    gap: '10px',
+    marginBottom: '20px',
+};
+
+const buttonStyle = {
+    border: 'none',
+    padding: '10px 15px',
+    borderRadius: '5px',
+    cursor: 'pointer',
+    fontSize: '1rem',
+};
+
+const updateButtonStyle = {
+    backgroundColor: '#556B2F',
+    color: '#FFF',
+    border: 'none',
+    padding: '10px 20px',
+    borderRadius: '5px',
+    fontSize: '1.2rem',
+    cursor: 'pointer',
+};
+
+const backButtonStyle = {
+    backgroundColor: '#8B0000',
+    color: '#FFF',
+    border: 'none',
+    padding: '10px 20px',
+    borderRadius: '5px',
+    fontSize: '1.2rem',
+    marginLeft: '10px',
+    cursor: 'pointer',
+};
+
+const formStyle = {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    alignItems: 'center',
+    gap: '10px',
+    marginBottom: '20px',
+};
+
+const inputStyle = {
+    padding: '10px',
+    border: '1px solid #ccc',
+    borderRadius: '5px',
+    width: '300px',
+};
+
+const textareaStyle = {
+    padding: '10px',
+    border: '1px solid #ccc',
+    borderRadius: '5px',
+    width: '300px',
+    height: '80px',
+    marginTop: '10px',
+};

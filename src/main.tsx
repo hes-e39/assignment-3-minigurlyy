@@ -1,6 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Link, Outlet, RouterProvider, createHashRouter } from 'react-router-dom';
+import { ErrorBoundary } from 'react-error-boundary';
 
 import './index.css';
 import { TimerProvider } from './context/TimerContext';
@@ -9,7 +10,15 @@ import DocumentationView from './views/DocumentationView';
 import TimersView from './views/TimersView';
 import WorkoutView from './views/WorkoutView';
 import EditTimerView from './views/EditTimerView';
-import WorkoutHistoryView from './views/WorkoutHistoryView'; // Import WorkoutHistoryView
+import WorkoutHistoryView from './views/WorkoutHistoryView';
+
+// Simple fallback UI in case of an error
+const ErrorFallback = () => (
+    <div style={{ textAlign: 'center', marginTop: '20px' }}>
+        <h2>Something went wrong!</h2>
+        <p>We're sorry for the inconvenience. Please refresh the page or try again later.</p>
+    </div>
+);
 
 const PageIndex = () => {
     return (
@@ -58,9 +67,11 @@ const router = createHashRouter([
 // Render the application
 createRoot(document.getElementById('root')!).render(
     <StrictMode>
-        <TimerProvider>
-            <RouterProvider router={router} />
-        </TimerProvider>
+        <ErrorBoundary FallbackComponent={ErrorFallback}>
+            <TimerProvider>
+                <RouterProvider router={router} />
+            </TimerProvider>
+        </ErrorBoundary>
     </StrictMode>,
 );
 
