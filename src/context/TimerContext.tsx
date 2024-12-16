@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 
 // Timer Configuration Interface
 export interface TimerConfig {
@@ -64,18 +64,25 @@ export const TimerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     });
 
     const [isWorkoutRunning, setIsWorkoutRunning] = useState(false);
+    const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
+    // Save state to localStorage
     useEffect(() => {
         localStorage.setItem('timers', JSON.stringify(timers));
         localStorage.setItem('workoutHistory', JSON.stringify(workoutHistory));
         localStorage.setItem('currentIndex', currentIndex.toString());
     }, [timers, workoutHistory, currentIndex]);
 
+    // Cleanup interval on unmount
+    useEffect(() => {
+        return () => {
+            if (intervalRef.current) clearInterval(intervalRef.current);
+        };
+    }, []);
+
     const addTimer = (timer: Timer) => setTimers((prev) => [...prev, timer]);
 
-    const removeTimer = (id: string) => {
-        setTimers((prev) => prev.filter((timer) => timer.id !== id));
-    };
+    const removeTimer = (id: string) => setTimers((prev) => prev.filter((timer) => timer.id !== id));
 
     const editTimer = (id: string, updatedData: Partial<Timer>) => {
         setTimers((prev) =>
@@ -84,6 +91,7 @@ export const TimerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
 
     const resetWorkout = () => {
+        if (intervalRef.current) clearInterval(intervalRef.current);
         setTimers((prev) =>
             prev.map((timer) => ({
                 ...timer,
@@ -129,32 +137,53 @@ export const TimerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                     state: index === 0 ? 'running' : 'not running',
                 })),
             );
+
+            if (intervalRef.current) clearInterval(intervalRef.current);
+
+            intervalRef.current = setInterval(() => {
+                setTimers((prev) =>
+                    prev.map((timer, index) => {
+                        if (index === currentIndex && timer.state === 'running') {
+                            if (timer.type === 'stopwatch') {
+                                return {
+                                    ...timer,
+                                    config: {
+                                        ...timer.config,
+                                        totalSeconds: (timer.config.totalSeconds || 0) + 1,
+                                    },
+                                };
+                            } else if (timer.type === 'countdown' && timer.config.totalSeconds) {
+                                const updatedSeconds = timer.config.totalSeconds - 1;
+                                if (updatedSeconds <= 0) {
+                                    moveToNextTimer();
+                                    return { ...timer, state: 'completed', config: { totalSeconds: 0 } };
+                                }
+                                return {
+                                    ...timer,
+                                    config: { ...timer.config, totalSeconds: updatedSeconds },
+                                };
+                            }
+                        }
+                        return timer;
+                    }),
+                );
+            }, 1000);
         }
     };
 
-    const toggleWorkout = () => setIsWorkoutRunning((prev) => !prev);
+    const toggleWorkout = () => {
+        if (isWorkoutRunning && intervalRef.current) {
+            clearInterval(intervalRef.current);
+            intervalRef.current = null;
+        } else {
+            startWorkout();
+        }
+        setIsWorkoutRunning((prev) => !prev);
+    };
 
     const completeWorkout = () => {
-        const totalTime = timers.reduce((total, timer) => {
-            switch (timer.type) {
-                case 'countdown':
-                case 'stopwatch':
-                    return total + (timer.config.totalSeconds || 0);
-                case 'xy':
-                    return (
-                        total +
-                        (timer.config.timePerRound || 0) * (timer.config.totalRounds || 1)
-                    );
-                case 'tabata':
-                    const workTime =
-                        (timer.config.workSeconds || 0) * (timer.config.totalRounds || 0);
-                    const restTime =
-                        (timer.config.restSeconds || 0) * (timer.config.totalRounds || 0);
-                    return total + workTime + restTime;
-                default:
-                    return total;
-            }
-        }, 0);
+        if (intervalRef.current) clearInterval(intervalRef.current);
+        const totalTime = timers.reduce((total, timer) => total + (timer.config.totalSeconds || 0), 0);
 
         const completedWorkout: Workout = {
             id: `workout-${Date.now()}`,
@@ -164,7 +193,6 @@ export const TimerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         };
 
         setWorkoutHistory((prev) => [...prev, completedWorkout]);
-        localStorage.setItem('workoutHistory', JSON.stringify([...workoutHistory, completedWorkout]));
         resetWorkout();
     };
 
