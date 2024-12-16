@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import type React from 'react';
+import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTimerContext } from '../context/TimerContext';
 
@@ -47,14 +48,7 @@ const AddTimerView: React.FC = () => {
     const renderConfigFields = () => {
         switch (type) {
             case 'countdown':
-                return (
-                    <input
-                        type="number"
-                        placeholder="Total Time (seconds)"
-                        value={config.totalSeconds || ''}
-                        onChange={(e) => setConfig({ totalSeconds: +e.target.value })}
-                    />
-                );
+                return <input type="number" placeholder="Total Time (seconds)" value={config.totalSeconds || ''} onChange={e => setConfig({ totalSeconds: +e.target.value })} />;
             case 'xy':
                 return (
                     <>
@@ -62,7 +56,7 @@ const AddTimerView: React.FC = () => {
                             type="number"
                             placeholder="Time Per Round (seconds)"
                             value={config.timePerRound || ''}
-                            onChange={(e) =>
+                            onChange={e =>
                                 setConfig((prev: any) => ({
                                     ...prev,
                                     timePerRound: +e.target.value,
@@ -73,7 +67,7 @@ const AddTimerView: React.FC = () => {
                             type="number"
                             placeholder="Total Rounds"
                             value={config.totalRounds || ''}
-                            onChange={(e) =>
+                            onChange={e =>
                                 setConfig((prev: any) => ({
                                     ...prev,
                                     totalRounds: +e.target.value,
@@ -89,7 +83,7 @@ const AddTimerView: React.FC = () => {
                             type="number"
                             placeholder="Work Duration (seconds)"
                             value={config.workSeconds || ''}
-                            onChange={(e) =>
+                            onChange={e =>
                                 setConfig((prev: any) => ({
                                     ...prev,
                                     workSeconds: +e.target.value,
@@ -100,7 +94,7 @@ const AddTimerView: React.FC = () => {
                             type="number"
                             placeholder="Rest Duration (seconds)"
                             value={config.restSeconds || ''}
-                            onChange={(e) =>
+                            onChange={e =>
                                 setConfig((prev: any) => ({
                                     ...prev,
                                     restSeconds: +e.target.value,
@@ -111,7 +105,7 @@ const AddTimerView: React.FC = () => {
                             type="number"
                             placeholder="Total Rounds"
                             value={config.totalRounds || ''}
-                            onChange={(e) =>
+                            onChange={e =>
                                 setConfig((prev: any) => ({
                                     ...prev,
                                     totalRounds: +e.target.value,
@@ -121,14 +115,7 @@ const AddTimerView: React.FC = () => {
                     </>
                 );
             case 'stopwatch':
-                return (
-                    <input
-                        type="number"
-                        placeholder="Total Time (seconds)"
-                        value={config.totalSeconds || ''}
-                        onChange={(e) => setConfig({ totalSeconds: +e.target.value })}
-                    />
-                );
+                return <input type="number" placeholder="Total Time (seconds)" value={config.totalSeconds || ''} onChange={e => setConfig({ totalSeconds: +e.target.value })} />;
             default:
                 return null;
         }
@@ -141,7 +128,7 @@ const AddTimerView: React.FC = () => {
 
             {/* Timer type options */}
             <div className="timer-type-options">
-                {(['countdown', 'xy', 'tabata', 'stopwatch'] as const).map((option) => (
+                {(['countdown', 'xy', 'tabata', 'stopwatch'] as const).map(option => (
                     <button
                         key={option}
                         className={`timer-option-button ${type === option ? 'active' : ''}`}
@@ -160,11 +147,7 @@ const AddTimerView: React.FC = () => {
             <div className="config-fields">{renderConfigFields()}</div>
 
             {/* Description field */}
-            <textarea
-                placeholder="Add a description for this timer (optional)"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-            />
+            <textarea placeholder="Add a description for this timer (optional)" value={description} onChange={e => setDescription(e.target.value)} />
 
             {/* Buttons */}
             <div className="button-container">

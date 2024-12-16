@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import type React from 'react';
+import { useEffect, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useTimerContext } from '../context/TimerContext';
 
 const EditTimerView: React.FC = () => {
@@ -12,7 +13,7 @@ const EditTimerView: React.FC = () => {
     const [description, setDescription] = useState<string>('');
 
     useEffect(() => {
-        const timer = timers.find((t) => t.id === id);
+        const timer = timers.find(t => t.id === id);
         if (timer) {
             setType(timer.type);
             setConfig(timer.config);
@@ -35,7 +36,7 @@ const EditTimerView: React.FC = () => {
                         type="number"
                         placeholder="Total Time (seconds)"
                         value={config.totalSeconds || ''}
-                        onChange={(e) => setConfig({ ...config, totalSeconds: +e.target.value })}
+                        onChange={e => setConfig({ ...config, totalSeconds: +e.target.value })}
                         style={inputStyle}
                     />
                 );
@@ -46,20 +47,10 @@ const EditTimerView: React.FC = () => {
                             type="number"
                             placeholder="Time Per Round (seconds)"
                             value={config.timePerRound || ''}
-                            onChange={(e) =>
-                                setConfig({ ...config, timePerRound: +e.target.value })
-                            }
+                            onChange={e => setConfig({ ...config, timePerRound: +e.target.value })}
                             style={inputStyle}
                         />
-                        <input
-                            type="number"
-                            placeholder="Total Rounds"
-                            value={config.totalRounds || ''}
-                            onChange={(e) =>
-                                setConfig({ ...config, totalRounds: +e.target.value })
-                            }
-                            style={inputStyle}
-                        />
+                        <input type="number" placeholder="Total Rounds" value={config.totalRounds || ''} onChange={e => setConfig({ ...config, totalRounds: +e.target.value })} style={inputStyle} />
                     </>
                 );
             case 'tabata':
@@ -69,29 +60,17 @@ const EditTimerView: React.FC = () => {
                             type="number"
                             placeholder="Work Duration (seconds)"
                             value={config.workSeconds || ''}
-                            onChange={(e) =>
-                                setConfig({ ...config, workSeconds: +e.target.value })
-                            }
+                            onChange={e => setConfig({ ...config, workSeconds: +e.target.value })}
                             style={inputStyle}
                         />
                         <input
                             type="number"
                             placeholder="Rest Duration (seconds)"
                             value={config.restSeconds || ''}
-                            onChange={(e) =>
-                                setConfig({ ...config, restSeconds: +e.target.value })
-                            }
+                            onChange={e => setConfig({ ...config, restSeconds: +e.target.value })}
                             style={inputStyle}
                         />
-                        <input
-                            type="number"
-                            placeholder="Total Rounds"
-                            value={config.totalRounds || ''}
-                            onChange={(e) =>
-                                setConfig({ ...config, totalRounds: +e.target.value })
-                            }
-                            style={inputStyle}
-                        />
+                        <input type="number" placeholder="Total Rounds" value={config.totalRounds || ''} onChange={e => setConfig({ ...config, totalRounds: +e.target.value })} style={inputStyle} />
                     </>
                 );
             case 'stopwatch':
@@ -100,7 +79,7 @@ const EditTimerView: React.FC = () => {
                         type="number"
                         placeholder="Total Time (seconds)"
                         value={config.totalSeconds || ''}
-                        onChange={(e) => setConfig({ ...config, totalSeconds: +e.target.value })}
+                        onChange={e => setConfig({ ...config, totalSeconds: +e.target.value })}
                         style={inputStyle}
                     />
                 );
@@ -115,7 +94,7 @@ const EditTimerView: React.FC = () => {
 
             {/* Type Selection Buttons */}
             <div style={buttonContainerStyle}>
-                {['countdown', 'xy', 'tabata', 'stopwatch'].map((option) => (
+                {['countdown', 'xy', 'tabata', 'stopwatch'].map(option => (
                     <button
                         key={option}
                         onClick={() => setType(option as any)}
@@ -134,12 +113,7 @@ const EditTimerView: React.FC = () => {
             <div style={formStyle}>{renderConfigFields()}</div>
 
             {/* Description */}
-            <textarea
-                placeholder="Add a description for this timer (optional)"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                style={textareaStyle}
-            />
+            <textarea placeholder="Add a description for this timer (optional)" value={description} onChange={e => setDescription(e.target.value)} style={textareaStyle} />
 
             {/* Action Buttons */}
             <div style={{ marginTop: '20px' }}>

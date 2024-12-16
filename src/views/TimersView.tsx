@@ -1,5 +1,5 @@
-import React from 'react';
-import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
+import { DragDropContext, Draggable, Droppable } from '@hello-pangea/dnd';
+import type React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTimerContext } from '../context/TimerContext';
 
@@ -9,7 +9,7 @@ const TimersView: React.FC = () => {
 
     // Handle drag-and-drop events
     const handleDragEnd = (result: any) => {
-        if (!result.destination) return; // Drop outside the list
+        if (!result.destination) return; // Dropped outside the list
         reorderTimers(result.source.index, result.destination.index);
     };
 
@@ -20,7 +20,7 @@ const TimersView: React.FC = () => {
             {/* Drag and Drop Context */}
             <DragDropContext onDragEnd={handleDragEnd}>
                 <Droppable droppableId="timers">
-                    {(provided) => (
+                    {provided => (
                         <ul
                             ref={provided.innerRef}
                             {...provided.droppableProps}
@@ -35,7 +35,7 @@ const TimersView: React.FC = () => {
                         >
                             {timers.map((timer, index) => (
                                 <Draggable key={timer.id} draggableId={timer.id} index={index}>
-                                    {(provided) => (
+                                    {provided => (
                                         <li
                                             ref={provided.innerRef}
                                             {...provided.draggableProps}
@@ -47,7 +47,7 @@ const TimersView: React.FC = () => {
                                                 alignItems: 'center',
                                                 marginBottom: '10px',
                                                 padding: '15px',
-                                                backgroundColor: 'white',
+                                                backgroundColor: '#fff',
                                                 border: '1px solid #ddd',
                                                 borderRadius: '5px',
                                                 boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
@@ -56,11 +56,9 @@ const TimersView: React.FC = () => {
                                             {/* Timer Details */}
                                             <div>
                                                 <h3 style={{ margin: 0, fontSize: '1.2rem', color: '#333' }}>
-                                                    #{index + 1} - {timer.type}
+                                                    #{index + 1} - {timer.type.charAt(0).toUpperCase() + timer.type.slice(1)}
                                                 </h3>
-                                                <p style={{ margin: '5px 0 0', color: '#777' }}>
-                                                    {timer.description || 'No description provided'}
-                                                </p>
+                                                <p style={{ margin: '5px 0 0', color: '#777' }}>{timer.description || 'No description provided'}</p>
                                             </div>
 
                                             {/* Action Buttons */}
