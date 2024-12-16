@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
+import type React from 'react';
+import { createContext, useContext, useEffect, useRef, useState } from 'react';
 
 // Timer Configuration Interface
 export interface TimerConfig {
@@ -60,40 +61,30 @@ export const TimerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     const [currentIndex, setCurrentIndex] = useState<number>(() => {
         const storedIndex = localStorage.getItem('currentIndex');
-        return storedIndex ? parseInt(storedIndex, 10) : -1;
+        return storedIndex ? Number.parseInt(storedIndex, 10) : -1;
     });
 
     const [isWorkoutRunning, setIsWorkoutRunning] = useState(false);
     const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-    // Save state to localStorage
-    useEffect(() => {
-        localStorage.setItem('timers', JSON.stringify(timers));
-        localStorage.setItem('workoutHistory', JSON.stringify(workoutHistory));
-        localStorage.setItem('currentIndex', currentIndex.toString());
-    }, [timers, workoutHistory, currentIndex]);
-
-    // Cleanup interval on unmount
     useEffect(() => {
         return () => {
             if (intervalRef.current) clearInterval(intervalRef.current);
         };
     }, []);
 
-    const addTimer = (timer: Timer) => setTimers((prev) => [...prev, timer]);
+    const addTimer = (timer: Timer) => setTimers(prev => [...prev, timer]);
 
-    const removeTimer = (id: string) => setTimers((prev) => prev.filter((timer) => timer.id !== id));
+    const removeTimer = (id: string) => setTimers(prev => prev.filter(timer => timer.id !== id));
 
     const editTimer = (id: string, updatedData: Partial<Timer>) => {
-        setTimers((prev) =>
-            prev.map((timer) => (timer.id === id ? { ...timer, ...updatedData } : timer)),
-        );
+        setTimers(prev => prev.map(timer => (timer.id === id ? { ...timer, ...updatedData } : timer)));
     };
 
     const resetWorkout = () => {
         if (intervalRef.current) clearInterval(intervalRef.current);
-        setTimers((prev) =>
-            prev.map((timer) => ({
+        setTimers(prev =>
+            prev.map(timer => ({
                 ...timer,
                 state: 'not running',
                 config: {
@@ -109,11 +100,7 @@ export const TimerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     const fastForward = () => {
         if (currentIndex >= 0 && currentIndex < timers.length) {
-            setTimers((prev) =>
-                prev.map((timer, index) =>
-                    index === currentIndex ? { ...timer, state: 'completed' } : timer,
-                ),
-            );
+            setTimers(prev => prev.map((timer, index) => (index === currentIndex ? { ...timer, state: 'completed' } : timer)));
             moveToNextTimer();
         }
     };
@@ -131,20 +118,28 @@ export const TimerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         if (timers.length > 0) {
             setCurrentIndex(0);
             setIsWorkoutRunning(true);
-            setTimers((prev) =>
-                prev.map((timer, index) => ({
-                    ...timer,
-                    state: index === 0 ? 'running' : 'not running',
-                })),
-            );
+            updateTimersState('running', 0);
+            startInterval();
+        }
+    };
 
+    const toggleWorkout = () => {
+        if (isWorkoutRunning) {
             if (intervalRef.current) clearInterval(intervalRef.current);
+        } else {
+            startInterval();
+        }
+        setIsWorkoutRunning(prev => !prev);
+    };
 
-            intervalRef.current = setInterval(() => {
-                setTimers((prev) =>
-                    prev.map((timer, index) => {
-                        if (index === currentIndex && timer.state === 'running') {
-                            if (timer.type === 'stopwatch') {
+    const startInterval = () => {
+        if (intervalRef.current) clearInterval(intervalRef.current);
+        intervalRef.current = setInterval(() => {
+            setTimers(prevTimers =>
+                prevTimers.map((timer, index) => {
+                    if (index === currentIndex && timer.state === 'running') {
+                        switch (timer.type) {
+                            case 'stopwatch':
                                 return {
                                     ...timer,
                                     config: {
@@ -152,33 +147,35 @@ export const TimerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                                         totalSeconds: (timer.config.totalSeconds || 0) + 1,
                                     },
                                 };
-                            } else if (timer.type === 'countdown' && timer.config.totalSeconds) {
-                                const updatedSeconds = timer.config.totalSeconds - 1;
+                            case 'countdown':
+                                const updatedSeconds = (timer.config.totalSeconds || 0) - 1;
                                 if (updatedSeconds <= 0) {
                                     moveToNextTimer();
                                     return { ...timer, state: 'completed', config: { totalSeconds: 0 } };
                                 }
-                                return {
-                                    ...timer,
-                                    config: { ...timer.config, totalSeconds: updatedSeconds },
-                                };
-                            }
+                                return { ...timer, config: { ...timer.config, totalSeconds: updatedSeconds } };
+                            case 'xy':
+                                const timeLeft = (timer.config.timePerRound || 0) - 1;
+                                if (timeLeft <= 0) {
+                                    const newRound = (timer.config.currentRound || 1) + 1;
+                                    if (newRound > (timer.config.totalRounds || 1)) {
+                                        moveToNextTimer();
+                                        return { ...timer, state: 'completed' };
+                                    }
+                                    return {
+                                        ...timer,
+                                        config: { ...timer.config, timePerRound: timer.config.initialTime || 0, currentRound: newRound },
+                                    };
+                                }
+                                return { ...timer, config: { ...timer.config, timePerRound: timeLeft } };
+                            default:
+                                return timer;
                         }
-                        return timer;
-                    }),
-                );
-            }, 1000);
-        }
-    };
-
-    const toggleWorkout = () => {
-        if (isWorkoutRunning && intervalRef.current) {
-            clearInterval(intervalRef.current);
-            intervalRef.current = null;
-        } else {
-            startWorkout();
-        }
-        setIsWorkoutRunning((prev) => !prev);
+                    }
+                    return timer;
+                }),
+            );
+        }, 1000);
     };
 
     const completeWorkout = () => {
@@ -189,18 +186,26 @@ export const TimerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             id: `workout-${Date.now()}`,
             date: new Date().toLocaleString(),
             totalTime,
-            timers: timers.map((timer) => timer.description || timer.type),
+            timers: timers.map(timer => timer.description || timer.type),
         };
 
-        setWorkoutHistory((prev) => [...prev, completedWorkout]);
+        setWorkoutHistory(prev => [...prev, completedWorkout]);
         resetWorkout();
     };
 
-    const currentTimer =
-        currentIndex >= 0 && currentIndex < timers.length ? timers[currentIndex] : null;
+    const currentTimer = currentIndex >= 0 && currentIndex < timers.length ? timers[currentIndex] : null;
+
+    const updateTimersState = (state: Timer['state'], startIndex: number) => {
+        setTimers(prev =>
+            prev.map((timer, index) => ({
+                ...timer,
+                state: index === startIndex ? state : 'not running',
+            })),
+        );
+    };
 
     const reorderTimers = (startIndex: number, endIndex: number) => {
-        setTimers((prev) => {
+        setTimers(prev => {
             const updatedTimers = Array.from(prev);
             const [removed] = updatedTimers.splice(startIndex, 1);
             updatedTimers.splice(endIndex, 0, removed);
