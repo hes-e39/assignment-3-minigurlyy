@@ -3,20 +3,20 @@ import type React from 'react';
 
 // Timer Configuration Interface
 export interface TimerConfig {
-    initialTime?: number;
-    currentRound?: number;
-    totalRounds?: number;
-    workSeconds?: number;
-    restSeconds?: number;
-    totalSeconds?: number;
-    timePerRound?: number;
+    initialTime?: number; // Countdown timers
+    currentRound?: number; // XY timers
+    totalRounds?: number; // XY and Tabata timers
+    workSeconds?: number; // Tabata timers
+    restSeconds?: number; // Tabata timers
+    totalSeconds?: number; // Remaining time
+    timePerRound?: number; // XY timers - per round time
 }
 
 // Timer Interface
 export interface Timer {
     id: string;
     type: 'countdown' | 'stopwatch' | 'xy' | 'tabata';
-    description?: string;
+    description?: string; // Optional description
     config: TimerConfig;
     state: 'not running' | 'running' | 'completed';
 }
@@ -24,7 +24,6 @@ export interface Timer {
 interface TimerContextProps {
     timers: Timer[];
     addTimer: (timer: Timer) => void;
-    editTimer: (id: string, updatedTimer: Partial<Timer>) => void; // Added
     removeTimer: (id: string) => void;
     resetWorkout: () => void;
     fastForward: () => void;
@@ -34,6 +33,7 @@ interface TimerContextProps {
     toggleWorkout: () => void;
     completeCurrentTimer: () => void;
     reorderTimers: (startIndex: number, endIndex: number) => void;
+    editTimer: (id: string, updatedTimer: Partial<Timer>) => void; // Added editTimer functionality
 }
 
 const TimerContext = createContext<TimerContextProps | undefined>(undefined);
@@ -45,10 +45,6 @@ export const TimerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     const addTimer = (timer: Timer) => {
         setTimers(prev => [...prev, timer]);
-    };
-
-    const editTimer = (id: string, updatedTimer: Partial<Timer>) => {
-        setTimers(prev => prev.map(timer => (timer.id === id ? { ...timer, ...updatedTimer } : timer)));
     };
 
     const removeTimer = (id: string) => {
@@ -74,7 +70,15 @@ export const TimerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const moveToNextTimer = () => {
         setCurrentIndex(prev => {
             const nextIndex = prev + 1;
-            if (nextIndex < timers.length) return nextIndex;
+            if (nextIndex < timers.length) {
+                setTimers(prevTimers =>
+                    prevTimers.map((timer, index) => ({
+                        ...timer,
+                        state: index === nextIndex ? 'running' : timer.state,
+                    })),
+                );
+                return nextIndex;
+            }
             setIsWorkoutRunning(false);
             return -1;
         });
@@ -87,12 +91,12 @@ export const TimerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     const startWorkout = () => {
         if (timers.length > 0) {
-            setCurrentIndex(0); // Set the first timer as the current timer
-            setIsWorkoutRunning(true); // Start the workout
+            setCurrentIndex(0);
+            setIsWorkoutRunning(true);
             setTimers(prev =>
                 prev.map((timer, index) => ({
                     ...timer,
-                    state: index === 0 ? 'running' : 'not running', // Mark the first timer as 'running'
+                    state: index === 0 ? 'running' : 'not running',
                 })),
             );
         }
@@ -111,10 +115,14 @@ export const TimerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         });
     };
 
-    const currentTimer = currentIndex >= 0 ? timers[currentIndex] : null;
+    const editTimer = (id: string, updatedTimer: Partial<Timer>) => {
+        setTimers(prev => prev.map(timer => (timer.id === id ? { ...timer, ...updatedTimer } : timer)));
+    };
+
+    const currentTimer = currentIndex >= 0 && currentIndex < timers.length ? timers[currentIndex] : null;
 
     useEffect(() => {
-        let interval: NodeJS.Timeout | undefined;
+        let interval: NodeJS.Timeout | null = null;
 
         if (isWorkoutRunning && currentTimer) {
             interval = setInterval(() => {
@@ -124,33 +132,27 @@ export const TimerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
                         const { type, config } = timer;
 
-                        switch (type) {
-                            case 'countdown': {
-                                const remaining = (config.totalSeconds || 0) - 1;
-                                if (remaining <= 0) completeCurrentTimer();
-                                return { ...timer, config: { ...config, totalSeconds: remaining > 0 ? remaining : 0 } };
+                        if (type === 'countdown') {
+                            const remaining = (config.totalSeconds || 0) - 1;
+                            if (remaining <= 0) completeCurrentTimer();
+                            return { ...timer, config: { ...config, totalSeconds: remaining } };
+                        } else if (type === 'stopwatch') {
+                            return { ...timer, config: { ...config, totalSeconds: (config.totalSeconds || 0) + 1 } };
+                        } else if (type === 'xy') {
+                            const remaining = (config.totalSeconds || 0) - 1;
+                            if (remaining <= 0) {
+                                const nextRound = (config.currentRound || 1) + 1;
+                                if (nextRound > (config.totalRounds || 1)) completeCurrentTimer();
+                                else
+                                    return {
+                                        ...timer,
+                                        config: { ...config, totalSeconds: config.timePerRound, currentRound: nextRound },
+                                    };
                             }
-                            case 'stopwatch': {
-                                return { ...timer, config: { ...config, totalSeconds: (config.totalSeconds || 0) + 1 } };
-                            }
-                            case 'xy': {
-                                const remaining = (config.totalSeconds || 0) - 1;
-                                if (remaining <= 0) {
-                                    const nextRound = (config.currentRound || 1) + 1;
-                                    if (nextRound > (config.totalRounds || 1)) {
-                                        completeCurrentTimer();
-                                    } else {
-                                        return {
-                                            ...timer,
-                                            config: { ...config, totalSeconds: config.timePerRound, currentRound: nextRound },
-                                        };
-                                    }
-                                }
-                                return { ...timer, config: { ...config, totalSeconds: remaining } };
-                            }
-                            default:
-                                return timer;
+                            return { ...timer, config: { ...config, totalSeconds: remaining } };
                         }
+
+                        return timer;
                     }),
                 );
             }, 1000);
@@ -166,7 +168,6 @@ export const TimerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             value={{
                 timers,
                 addTimer,
-                editTimer,
                 removeTimer,
                 resetWorkout,
                 fastForward,
@@ -176,6 +177,7 @@ export const TimerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 toggleWorkout,
                 completeCurrentTimer,
                 reorderTimers,
+                editTimer,
             }}
         >
             {children}
