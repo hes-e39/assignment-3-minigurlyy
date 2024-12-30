@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import type React from 'react';
+import { useEffect, useState } from 'react';
 
 // Workout Interface
 interface Workout {
@@ -36,10 +37,8 @@ const WorkoutHistoryView: React.FC = () => {
     };
 
     return (
-        <div style={{ padding: '20px' }}>
-            <h2 style={{ textAlign: 'center', fontSize: '2rem', marginBottom: '20px' }}>
-                Workout History
-            </h2>
+        <div style={{ padding: '20px', maxWidth: '600px', margin: '0 auto' }}>
+            <h2 style={{ textAlign: 'center', fontSize: '2rem', marginBottom: '20px' }}>Workout History</h2>
 
             {workoutHistory.length === 0 ? (
                 <p
@@ -70,54 +69,65 @@ const WorkoutHistoryView: React.FC = () => {
                     >
                         Clear History
                     </button>
-                    <ul style={{ listStyle: 'none', padding: 0 }}>
-                        {workoutHistory.map((workout) => (
-                            <li
-                                key={workout.id}
-                                style={{
-                                    marginBottom: '20px',
-                                    padding: '15px',
-                                    border: '1px solid #ddd',
-                                    borderRadius: '10px',
-                                    backgroundColor: '#f8f9fa',
-                                    boxShadow: '0px 4px 6px rgba(0, 0, 0, 0.1)',
-                                }}
-                            >
-                                <h3
+                    <div
+                        style={{
+                            maxHeight: '400px', // Limit the height
+                            overflowY: 'auto', // Enable scrolling
+                            border: '1px solid #ddd',
+                            padding: '10px',
+                            borderRadius: '8px',
+                            backgroundColor: '#f8f9fa',
+                        }}
+                    >
+                        <ul style={{ listStyle: 'none', padding: 0 }}>
+                            {workoutHistory.map(workout => (
+                                <li
+                                    key={workout.id}
                                     style={{
-                                        fontSize: '1.5rem',
-                                        marginBottom: '10px',
-                                        color: '#2C4001',
+                                        marginBottom: '20px',
+                                        padding: '15px',
+                                        border: '1px solid #ddd',
+                                        borderRadius: '10px',
+                                        backgroundColor: '#fff',
+                                        boxShadow: '0px 4px 6px rgba(0, 0, 0, 0.1)',
                                     }}
                                 >
-                                    Workout on {formatDate(workout.date)}
-                                </h3>
-                                <p
-                                    style={{
-                                        marginBottom: '10px',
-                                        fontSize: '1.2rem',
-                                        color: '#555',
-                                    }}
-                                >
-                                    <strong>Total Time:</strong> {workout.totalTime} seconds
-                                </p>
-                                <ul style={{ paddingLeft: '20px', marginBottom: 0 }}>
-                                    {workout.timers.map((timer, index) => (
-                                        <li
-                                            key={index}
-                                            style={{
-                                                fontSize: '1rem',
-                                                color: '#555',
-                                                marginBottom: '5px',
-                                            }}
-                                        >
-                                            {timer}
-                                        </li>
-                                    ))}
-                                </ul>
-                            </li>
-                        ))}
-                    </ul>
+                                    <h3
+                                        style={{
+                                            fontSize: '1.5rem',
+                                            marginBottom: '10px',
+                                            color: '#2C4001',
+                                        }}
+                                    >
+                                        Workout on {formatDate(workout.date)}
+                                    </h3>
+                                    <p
+                                        style={{
+                                            marginBottom: '10px',
+                                            fontSize: '1.2rem',
+                                            color: '#555',
+                                        }}
+                                    >
+                                        <strong>Total Time:</strong> {workout.totalTime} seconds
+                                    </p>
+                                    <ul style={{ paddingLeft: '20px', marginBottom: 0 }}>
+                                        {workout.timers.map((timer, index) => (
+                                            <li
+                                                key={index}
+                                                style={{
+                                                    fontSize: '1rem',
+                                                    color: '#555',
+                                                    marginBottom: '5px',
+                                                }}
+                                            >
+                                                {timer}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
                 </>
             )}
         </div>

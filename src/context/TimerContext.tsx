@@ -7,20 +7,20 @@ import XY from '../components/timers/XY';
 
 // Timer Configuration Interface
 export interface TimerConfig {
-    initialTime?: number; // Countdown timers
-    currentRound?: number; // XY timers
-    totalRounds?: number; // XY and Tabata timers
-    workSeconds?: number; // Tabata timers
-    restSeconds?: number; // Tabata timers
-    totalSeconds?: number; // Remaining time
-    timePerRound?: number; // XY timers - per round time
+    initialTime?: number;
+    currentRound?: number;
+    totalRounds?: number;
+    workSeconds?: number;
+    restSeconds?: number;
+    totalSeconds?: number;
+    timePerRound?: number;
 }
 
 // Timer Interface
 export interface Timer {
     id: string;
     type: 'countdown' | 'stopwatch' | 'xy' | 'tabata';
-    description?: string; // Optional description
+    description?: string;
     config: TimerConfig;
     state: 'not running' | 'running' | 'completed';
 }
@@ -83,7 +83,8 @@ export const TimerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 );
                 return nextIndex;
             }
-            setIsWorkoutRunning(false); // End workout if no more timers
+            setIsWorkoutRunning(false);
+            saveWorkoutHistory(); // Save workout history when all timers complete
             return -1;
         });
     };
@@ -91,6 +92,19 @@ export const TimerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const completeCurrentTimer = () => {
         setTimers(prevTimers => prevTimers.map((timer, index) => (index === currentIndex ? { ...timer, state: 'completed' } : timer)));
         moveToNextTimer();
+    };
+
+    const saveWorkoutHistory = () => {
+        const totalTime = timers.reduce((sum, timer) => sum + (timer.config.totalSeconds || 0), 0);
+        const workoutSummary = {
+            id: new Date().toISOString(),
+            date: new Date().toISOString(),
+            totalTime,
+            timers: timers.map(timer => timer.description || `${timer.type} Timer`),
+        };
+
+        const existingHistory = JSON.parse(localStorage.getItem('workoutHistory') || '[]');
+        localStorage.setItem('workoutHistory', JSON.stringify([workoutSummary, ...existingHistory]));
     };
 
     const startWorkout = () => {
@@ -199,12 +213,7 @@ export const TimerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             {currentTimer?.type === 'tabata' && currentTimer.config.workSeconds !== undefined && currentTimer.config.restSeconds !== undefined && currentTimer.config.totalRounds !== undefined && (
                 <Tabata workDuration={currentTimer.config.workSeconds} restDuration={currentTimer.config.restSeconds} totalRounds={currentTimer.config.totalRounds} onComplete={completeCurrentTimer} />
             )}
-            {currentTimer?.type === 'stopwatch' && (
-                <Stopwatch
-                    time={currentTimer.config.totalSeconds || 0} // Pass the current timer's totalSeconds
-                    onComplete={completeCurrentTimer} // Callback to handle when the timer is complete
-                />
-            )}
+            {currentTimer?.type === 'stopwatch' && <Stopwatch time={currentTimer.config.totalSeconds || 0} onComplete={completeCurrentTimer} />}
         </TimerContext.Provider>
     );
 };
