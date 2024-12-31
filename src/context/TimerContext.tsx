@@ -43,9 +43,30 @@ interface TimerContextProps {
 const TimerContext = createContext<TimerContextProps | undefined>(undefined);
 
 export const TimerProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const [timers, setTimers] = useState<Timer[]>([]);
-    const [currentIndex, setCurrentIndex] = useState<number>(-1);
-    const [isWorkoutRunning, setIsWorkoutRunning] = useState(false);
+    const [timers, setTimers] = useState<Timer[]>(() => {
+        const savedTimers = localStorage.getItem('timers');
+        return savedTimers ? JSON.parse(savedTimers) : [];
+    });
+    const [currentIndex, setCurrentIndex] = useState<number>(() => {
+        const savedIndex = localStorage.getItem('currentIndex');
+        return savedIndex ? Number.parseInt(savedIndex, 10) : -1;
+    });
+    const [isWorkoutRunning, setIsWorkoutRunning] = useState<boolean>(() => {
+        const savedIsRunning = localStorage.getItem('isWorkoutRunning');
+        return savedIsRunning ? JSON.parse(savedIsRunning) : false;
+    });
+
+    const [workoutHistory, setWorkoutHistory] = useState(() => {
+        const savedHistory = localStorage.getItem('workoutHistory');
+        return savedHistory ? JSON.parse(savedHistory) : [];
+    });
+
+    useEffect(() => {
+        localStorage.setItem('timers', JSON.stringify(timers));
+        localStorage.setItem('currentIndex', currentIndex.toString());
+        localStorage.setItem('isWorkoutRunning', JSON.stringify(isWorkoutRunning));
+        localStorage.setItem('workoutHistory', JSON.stringify(workoutHistory));
+    }, [timers, currentIndex, isWorkoutRunning, workoutHistory]);
 
     const addTimer = (timer: Timer) => {
         setTimers(prev => [...prev, timer]);
@@ -71,6 +92,17 @@ export const TimerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setIsWorkoutRunning(false);
     };
 
+    const saveWorkoutToHistory = () => {
+        const totalTime = timers.reduce((sum, timer) => sum + (timer.config.totalSeconds || 0), 0);
+        const workoutEntry = {
+            id: `workout-${Date.now()}`,
+            date: new Date().toISOString(),
+            totalTime,
+            timers: timers.map(timer => timer.description || `${timer.type} Timer`),
+        };
+        setWorkoutHistory((prev: typeof workoutHistory) => [...prev, workoutEntry]); // Explicitly typing 'prev'
+    };
+
     const moveToNextTimer = () => {
         setCurrentIndex(prevIndex => {
             const nextIndex = prevIndex + 1;
@@ -84,7 +116,7 @@ export const TimerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 return nextIndex;
             }
             setIsWorkoutRunning(false);
-            saveWorkoutHistory(); // Save workout history when all timers complete
+            saveWorkoutToHistory(); // Save workout to history when all timers are completed
             return -1;
         });
     };
@@ -92,19 +124,6 @@ export const TimerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const completeCurrentTimer = () => {
         setTimers(prevTimers => prevTimers.map((timer, index) => (index === currentIndex ? { ...timer, state: 'completed' } : timer)));
         moveToNextTimer();
-    };
-
-    const saveWorkoutHistory = () => {
-        const totalTime = timers.reduce((sum, timer) => sum + (timer.config.totalSeconds || 0), 0);
-        const workoutSummary = {
-            id: new Date().toISOString(),
-            date: new Date().toISOString(),
-            totalTime,
-            timers: timers.map(timer => timer.description || `${timer.type} Timer`),
-        };
-
-        const existingHistory = JSON.parse(localStorage.getItem('workoutHistory') || '[]');
-        localStorage.setItem('workoutHistory', JSON.stringify([workoutSummary, ...existingHistory]));
     };
 
     const startWorkout = () => {
@@ -139,55 +158,6 @@ export const TimerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     const currentTimer = currentIndex >= 0 && currentIndex < timers.length ? timers[currentIndex] : null;
 
-    useEffect(() => {
-        let interval: NodeJS.Timeout | null = null;
-
-        if (isWorkoutRunning && currentTimer) {
-            interval = setInterval(() => {
-                setTimers(prevTimers =>
-                    prevTimers.map((timer, index) => {
-                        if (index !== currentIndex || timer.state !== 'running') return timer;
-
-                        const { type, config } = timer;
-
-                        if (type === 'countdown') {
-                            const remaining = (config.totalSeconds || 0) - 1;
-                            if (remaining <= 0) completeCurrentTimer();
-                            return { ...timer, config: { ...config, totalSeconds: remaining } };
-                        } else if (type === 'stopwatch') {
-                            return {
-                                ...timer,
-                                config: { ...config, totalSeconds: (config.totalSeconds || 0) + 1 },
-                            };
-                        } else if (type === 'xy') {
-                            const remaining = (config.totalSeconds || 0) - 1;
-                            if (remaining <= 0) {
-                                const nextRound = (config.currentRound || 1) + 1;
-                                if (nextRound > (config.totalRounds || 1)) completeCurrentTimer();
-                                else
-                                    return {
-                                        ...timer,
-                                        config: {
-                                            ...config,
-                                            totalSeconds: config.timePerRound,
-                                            currentRound: nextRound,
-                                        },
-                                    };
-                            }
-                            return { ...timer, config: { ...config, totalSeconds: remaining } };
-                        }
-
-                        return timer;
-                    }),
-                );
-            }, 1000);
-        }
-
-        return () => {
-            if (interval) clearInterval(interval);
-        };
-    }, [isWorkoutRunning, currentIndex, currentTimer]);
-
     return (
         <TimerContext.Provider
             value={{
@@ -220,6 +190,8 @@ export const TimerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
 export const useTimerContext = () => {
     const context = useContext(TimerContext);
-    if (!context) throw new Error('useTimerContext must be used within a TimerProvider');
+    if (!context) {
+        throw new Error('useTimerContext must be used within a TimerProvider');
+    }
     return context;
 };
