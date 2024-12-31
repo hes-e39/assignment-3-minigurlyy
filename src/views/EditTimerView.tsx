@@ -2,6 +2,7 @@ import type React from 'react';
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTimerContext } from '../context/TimerContext';
+import type { TimerConfig } from '../context/TimerContext';
 
 const EditTimerView: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -10,12 +11,14 @@ const EditTimerView: React.FC = () => {
 
     const [type, setType] = useState<'countdown' | 'stopwatch' | 'xy' | 'tabata'>('countdown');
     const [description, setDescription] = useState<string>('');
+    const [config, setConfig] = useState<TimerConfig>({});
 
     useEffect(() => {
         const timer = timers.find(timer => timer.id === id);
         if (timer) {
             setType(timer.type);
             setDescription(timer.description || '');
+            setConfig(timer.config || {});
         }
     }, [id, timers]);
 
@@ -25,9 +28,138 @@ const EditTimerView: React.FC = () => {
         editTimer(id, {
             type,
             description,
+            config,
         });
 
         navigate('/');
+    };
+
+    const renderConfigFields = () => {
+        switch (type) {
+            case 'countdown':
+                return (
+                    <div style={{ marginBottom: '10px' }}>
+                        <label>
+                            Total Seconds:
+                            <input
+                                type="number"
+                                value={config.totalSeconds || ''}
+                                onChange={e =>
+                                    setConfig(prev => ({
+                                        ...prev,
+                                        totalSeconds: Number.parseInt(e.target.value, 10) || 0,
+                                    }))
+                                }
+                            />
+                        </label>
+                    </div>
+                );
+            case 'xy':
+                return (
+                    <>
+                        <div style={{ marginBottom: '10px' }}>
+                            <label>
+                                Time Per Round:
+                                <input
+                                    type="number"
+                                    value={config.timePerRound || ''}
+                                    onChange={e =>
+                                        setConfig(prev => ({
+                                            ...prev,
+                                            timePerRound: Number.parseInt(e.target.value, 10) || 0,
+                                        }))
+                                    }
+                                />
+                            </label>
+                        </div>
+                        <div style={{ marginBottom: '10px' }}>
+                            <label>
+                                Total Rounds:
+                                <input
+                                    type="number"
+                                    value={config.totalRounds || ''}
+                                    onChange={e =>
+                                        setConfig(prev => ({
+                                            ...prev,
+                                            totalRounds: Number.parseInt(e.target.value, 10) || 0,
+                                        }))
+                                    }
+                                />
+                            </label>
+                        </div>
+                    </>
+                );
+            case 'tabata':
+                return (
+                    <>
+                        <div style={{ marginBottom: '10px' }}>
+                            <label>
+                                Work Seconds:
+                                <input
+                                    type="number"
+                                    value={config.workSeconds || ''}
+                                    onChange={e =>
+                                        setConfig(prev => ({
+                                            ...prev,
+                                            workSeconds: Number.parseInt(e.target.value, 10) || 0,
+                                        }))
+                                    }
+                                />
+                            </label>
+                        </div>
+                        <div style={{ marginBottom: '10px' }}>
+                            <label>
+                                Rest Seconds:
+                                <input
+                                    type="number"
+                                    value={config.restSeconds || ''}
+                                    onChange={e =>
+                                        setConfig(prev => ({
+                                            ...prev,
+                                            restSeconds: Number.parseInt(e.target.value, 10) || 0,
+                                        }))
+                                    }
+                                />
+                            </label>
+                        </div>
+                        <div style={{ marginBottom: '10px' }}>
+                            <label>
+                                Total Rounds:
+                                <input
+                                    type="number"
+                                    value={config.totalRounds || ''}
+                                    onChange={e =>
+                                        setConfig(prev => ({
+                                            ...prev,
+                                            totalRounds: Number.parseInt(e.target.value, 10) || 0,
+                                        }))
+                                    }
+                                />
+                            </label>
+                        </div>
+                    </>
+                );
+            case 'stopwatch':
+                return (
+                    <div style={{ marginBottom: '10px' }}>
+                        <label>
+                            Total Time (Optional):
+                            <input
+                                type="number"
+                                value={config.totalSeconds || ''}
+                                onChange={e =>
+                                    setConfig(prev => ({
+                                        ...prev,
+                                        totalSeconds: Number.parseInt(e.target.value, 10) || 0,
+                                    }))
+                                }
+                            />
+                        </label>
+                    </div>
+                );
+            default:
+                return null;
+        }
     };
 
     return (
@@ -50,6 +182,7 @@ const EditTimerView: React.FC = () => {
                         </select>
                     </label>
                 </div>
+                {renderConfigFields()}
                 <div style={{ marginBottom: '10px' }}>
                     <label>
                         Description:

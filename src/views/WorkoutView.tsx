@@ -31,7 +31,7 @@ const WorkoutView: React.FC = () => {
                 <p style={{ fontSize: '1rem', color: '#555' }}>
                     <strong>State:</strong> {state}
                 </p>
-                <p style={{ fontSize: '2.5rem', fontWeight: 'bold', color: '#2C4001' }}>{config.totalSeconds ? `${config.totalSeconds} s` : '--'}</p>
+                <p style={{ fontSize: '2.5rem', fontWeight: 'bold', color: '#2C4001' }}>{config?.totalSeconds ? `${config.totalSeconds} s` : '--'}</p>
             </div>
         );
     };
@@ -40,8 +40,8 @@ const WorkoutView: React.FC = () => {
         <div style={{ padding: '20px', textAlign: 'center' }}>
             <h2 style={{ fontSize: '2.5rem', color: '#2C4001' }}>Workout in Progress</h2>
 
-            {/* Show "Start Workout" button if timers exist and workout hasn't started */}
-            {!currentTimer && timers.length > 0 && <ActionButton label="Start Workout" onClick={startWorkout} disabled={isWorkoutRunning} />}
+            {/* Show "Start Workout" button if timers exist */}
+            {!currentTimer && timers.length > 0 && <ActionButton label="Start Workout" onClick={startWorkout} disabled={isWorkoutRunning || timers.length === 0} />}
 
             {/* Render Timer Details */}
             {renderTimerDetails()}
@@ -51,8 +51,7 @@ const WorkoutView: React.FC = () => {
 
             {/* Action Buttons */}
             <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'center', gap: '10px' }}>
-                {!isWorkoutRunning && <ActionButton label="Start Workout" onClick={startWorkout} disabled={currentTimer?.state === 'running' || !currentTimer} />}
-                {isWorkoutRunning && <ActionButton label="Pause Workout" onClick={toggleWorkout} disabled={!currentTimer} />}
+                <ActionButton label={isWorkoutRunning ? 'Pause Workout' : 'Resume Workout'} onClick={toggleWorkout} disabled={!currentTimer} />
                 <ActionButton label="Reset Workout" onClick={resetWorkout} disabled={!currentTimer} />
                 <ActionButton label="Fast Forward" onClick={fastForward} disabled={!currentTimer || currentTimer.state === 'completed'} />
             </div>
